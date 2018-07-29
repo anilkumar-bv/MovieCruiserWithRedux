@@ -1,0 +1,62 @@
+{
+    "userCollections": [
+      {
+        "id": 1,
+        "name": "Action",
+        "movies": [
+          177677,
+          351286,
+          9350
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Thriller",
+        "movies": [
+          82628,
+          419566,
+          279988,
+          347064,
+          331984,
+          744
+        ]
+      },
+      {
+        "id": 3,
+        "name": "Comedy",
+        "movies": [
+          262,
+          62444,
+          8288,
+          156268
+        ]
+      },
+      {
+        "id": 4,
+        "name": "Horror",
+        "movies": [
+          301325,
+          32613,
+          10065,
+          11449,
+          354770
+        ]
+      },
+      {
+        "name": "Science Fiction",
+        "movies": [
+          496409,
+          210320,
+          286685
+        ],
+        "id": 5
+      },
+      {
+        "name": "Miscellaneous",
+        "movies": [
+          956
+        ],
+        "id": 6
+      }
+    ]
+  }
