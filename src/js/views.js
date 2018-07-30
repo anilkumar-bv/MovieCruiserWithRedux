@@ -1,14 +1,17 @@
 import { createStore } from 'redux'
-import collection from './reducers'
+import { collection } from './reducers'
 
 import {
     addCollectionToStore,
     addMovieToCollectionStore,
-    removeMovieFromCollectionStore
+    removeMovieFromCollectionStore,
+    setActionFilter,
+    ActionFilters
 } from './actions'
 
 import { httpAsync, httpPostOrPut, clearBox, httpSync } from './services';
 
+let currentAction = ActionFilters.COLLECTION_ADDED;
 const store = createStore(collection)
 
 // Log the initial state
@@ -89,15 +92,15 @@ function removeFromCollection(movieId) {
 
     // fetch the Collection first.
     let collectionName = document.getElementById('searchFilterText').textContent;
+    let collectionId = null;
 
     let url = "http://localhost:3000/userCollections?name=" + collectionName;
-    console.log(url);
 
     // Fetch Collection details
     httpSync(url, (responseText) => {
         let response = JSON.parse(responseText);
         let index = response[0].movies.indexOf(parseInt(movieId));
-        let collectionId = response[0].id;
+        collectionId = response[0].id;
         if (index > -1) {
             response[0].movies.splice(index, 1);
         }
@@ -110,6 +113,11 @@ function removeFromCollection(movieId) {
         httpPostOrPut(url, 'PUT', json);
 
     }, 'GET', null);
+
+    // Update the Store
+    //store.dispatch(setActionFilter(ActionFilters.SHOW_MOVIE_REMOVED));
+    currentAction = ActionFilters.MOVIE_REMOVED;
+    store.dispatch(removeMovieFromCollectionStore(collectionId, movieId));
 }
 
 const createMovieDetailCard = (movie) => {
@@ -138,8 +146,6 @@ function addMovieToCollection(e) {
     let selectedCategoryId = document.getElementById('collectionsList').value;
     let url = 'http://localhost:3000/userCollections/' + selectedCategoryId;
 
-    console.log(url);
-
     // Fetch Collection details
     httpAsync(url, getCollectionDetailAndUpdate, 'GET', null);
 }
@@ -166,6 +172,15 @@ function getCollectionDetailAndUpdate(responseText) {
     // create a Post Request
     var json = JSON.stringify(response);
     httpPostOrPut(url, 'PUT', json);
+
+    alert(selectedCategoryId);
+    alert(movieId);
+    console.log(store.getState());
+
+    // Update the Store
+    //store.dispatch(setActionFilter(ActionFilters.SHOW_MOVIE_ADDED));
+    currentAction = ActionFilters.MOVIE_ADDED;
+    store.dispatch(addMovieToCollectionStore(selectedCategoryId, movieId));
 }
 
 function getTruncatedMovieDescription(movieTitle) {
@@ -287,8 +302,6 @@ const createInitialSection = () => {
     return mainPage;
 };
 
-
-
 function getAllUserCollections() {
 
     // Clear the content
@@ -304,13 +317,10 @@ function getAllUserCollections() {
 
     // Get the User Collection Movies
     let urlForUserCollections = "http://localhost:3000/userCollections";
-
-    console.log(urlForUserCollections);
-
     httpAsync(urlForUserCollections, getDifferentUserCollections, 'GET', null);
-
 }
 
+// function to add a New Collection
 function addCollection() {
     let collectionInput = document.getElementById('addCollectionInput');
     let inputText = collectionInput.value;
@@ -327,13 +337,57 @@ function addCollection() {
     // Add to the CollectionTypes
     httpPostOrPut(url, 'POST', json);
 
+    // Push the Collection to Store
+    //store.dispatch(setActionFilter(ActionFilters.SHOW_COLLECTION_ADDED));
+    currentAction = ActionFilters.COLLECTION_ADDED;
+    store.dispatch(addCollectionToStore(newUserCollection));
+
     // Reload the page to get the updated Collections
     getAllUserCollections();
 }
 
+// Implement HTML Rendering here
+store.subscribe(() => {
+    alert('In subscribe event for Rendering')
+    switch (currentAction) {
+        case ActionFilters.COLLECTION_ADDED:
+            // render collection related details
+            getUserCollectionsFromStore();
+            break;
+        case ActionFilters.MOVIE_ADDED:
+            // render movie added scenario
+            break;
+        case ActionFilters.MOVIE_REMOVED:
+            // render movie removed scenario
+            break;
+        default:
+            break;
+    }
+});
+
+function getUserCollectionsFromStore() {
+    let currentState = store.getState();
+    console.log(currentState);
+    if (currentState.length > 0) {
+        let selectList = document.getElementById('collectionsList');
+
+        // Loop through all the movies to fetch unique genre
+        for (let i = 0; i < currentState.length; i++) {
+            let collectionName = currentState[i].name;
+            let collectionId = currentState[i].id;
+
+            let option = document.createElement("option");
+            option.value = collectionId;
+            option.text = collectionName;
+            selectList.appendChild(option);
+        }
+    }
+
+}
+
 function getDifferentUserCollections(responseText) {
     let response = JSON.parse(responseText);
-    console.log(response);
+    //console.log(response);
 
     //console.log(response.results[0]);
     if (response.length > 0) {
@@ -395,8 +449,6 @@ export const loadInitialPage = () => {
     const urlForPopular = "https://api.themoviedb.org/3/movie/popular?api_key=8ea0aad7a07343596262232e43a21cda&language=en-US&page=1";
     const urlForUserCollections = "http://localhost:3000/userCollections";
 
-    console.log(urlForPopular);
-
     // GET the Movies
     httpAsync(urlForPopular, processResponseForPopular, "GET", null);
     httpAsync(urlForUserCollections, processRespForUserCollections, 'GET', null);
@@ -455,9 +507,7 @@ export const createInitialMovieCollectionHtml = () => {
 // process the Response for Popular Movies of the Main Page
 function processResponseForPopular(responseText) {
     let response = JSON.parse(responseText);
-    console.log(response);
 
-    //console.log(response.results[0]);
     if (response.results.length > 0) {
         var movieDiv1 = document.getElementById('popularCardGroup1');
         var movieDiv2 = document.getElementById('popularCardGroup2');
@@ -487,7 +537,6 @@ function processRespForUserCollections(responseText) {
         for (var i = 0; i < response.length; i++) {
             let collection = response[i];
             let collectionName = collection.name;
-            console.log(collection);
             createUserCollectionCard(collection);
         }
     }
@@ -514,7 +563,6 @@ const createUserCollectionCard = (collection) => {
     let movieIds = collection.movies.slice(0, 3);
     let collectionId = 'collection'.concat(collection.id);
     let collectionIdMore = collectionId.concat('More');
-    console.log(collectionId);
     let userCollectionCard = document.getElementById(collectionId);
     let moreButton = document.getElementById(collectionIdMore)
 
@@ -529,7 +577,6 @@ const createUserCollectionCard = (collection) => {
 function getCollectionDetails(e) {
     let collectionIdMore = e.target.id;
     let collectionId = collectionIdMore.replace('collection', '').replace('More', '');
-    console.log(collectionId);
     getCollectionDetailswithCollectionId(collectionId);
 }
 
@@ -546,7 +593,6 @@ function getCollectionDetailswithCollectionId(collectionId) {
 
 function processResForCollection(responseText) {
     let collectionResponse = JSON.parse(responseText);
-    console.log(collectionResponse);
     let movieCounter = 0;
     let collection = collectionResponse.name;
     let span = document.getElementById('searchFilterText');
@@ -561,10 +607,8 @@ function processResForCollection(responseText) {
         ++movieCounter;
         let desiredMovieDiv = createMovieCardFromMovieId(movieId);
 
-        if (movieCounter <= 3) {
-            console.log(desiredMovieDiv);
+        if (movieCounter <= 3)
             group1Tag.appendChild(desiredMovieDiv);
-        }
         else if (movieCounter > 3 && movieCounter <= 6)
             group2Tag.appendChild(desiredMovieDiv);
         else if (movieCounter > 6 && movieCounter <= 9)
@@ -581,7 +625,6 @@ function createMovieCardFromMovieId(movieId) {
 
     httpSync(url, (responseText) => {
         let desiredMovie = JSON.parse(responseText);
-        console.log(desiredMovie);
         desiredMovieDiv = createMovieCardForCollection(desiredMovie);
     }, 'GET', null);
 
@@ -594,7 +637,6 @@ function createMovieSearchCardFromMovieId(movieId) {
 
     httpSync(url, (responseText) => {
         let desiredMovie = JSON.parse(responseText);
-        console.log(desiredMovie);
         desiredMovieDiv = createMovieSearchCard(desiredMovie);
     }, 'GET', null);
 
@@ -652,7 +694,6 @@ function getMovieDetails(e) {
     let movieId = e.target.id;
     let url = 'https://api.themoviedb.org/3/movie/' + movieId + '?api_key=8ea0aad7a07343596262232e43a21cda&language=en-US&page=1';
 
-    console.log(movieId);
     httpAsync(url, processResponseForMovieDetail, 'GET', null);
 }
 
