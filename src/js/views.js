@@ -1,5 +1,18 @@
+import { createStore } from 'redux'
+import collection from './reducers'
+
+import {
+    addCollectionToStore,
+    addMovieToCollectionStore,
+    removeMovieFromCollectionStore
+} from './actions'
 
 import { httpAsync, httpPostOrPut, clearBox, httpSync } from './services';
+
+const store = createStore(collection)
+
+// Log the initial state
+console.log(store.getState())
 
 const createMovieCard = (movie) => {
     let movieCard = createHTMLElement(`
