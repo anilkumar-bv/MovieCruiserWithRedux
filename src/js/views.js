@@ -355,10 +355,11 @@ store.subscribe(() => {
             getUserCollectionsFromStore();
             break;
         case ActionFilters.MOVIE_ADDED:
-            // render movie added scenario
+            // No changes in UI
             break;
         case ActionFilters.MOVIE_REMOVED:
-            // render movie removed scenario
+            // Relevant Movie Card is removed already
+            // State is also updated
             break;
         default:
             break;

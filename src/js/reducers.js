@@ -38,8 +38,7 @@ export function addCollection(state, action) {
     return [
         ...state,
         {
-            name: action.collectionName,
-            movies: []
+            name: action.collectionName
         }
     ]
 }
